@@ -23,6 +23,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
+#include "app_tasks.h"
 
 /** @addtogroup STM32F10x_StdPeriph_Template
   * @{
@@ -55,10 +56,7 @@ void NMI_Handler(void)
   */
 void HardFault_Handler(void)
 {
-  /* Go to infinite loop when Hard Fault exception occurs */
-  while (1)
-  {
-  }
+  AppRtos_Assert("HardFault", 0);
 }
 
 /**
@@ -68,10 +66,7 @@ void HardFault_Handler(void)
   */
 void MemManage_Handler(void)
 {
-  /* Go to infinite loop when Memory Manage exception occurs */
-  while (1)
-  {
-  }
+  AppRtos_Assert("MemManage", 0);
 }
 
 /**
@@ -81,10 +76,7 @@ void MemManage_Handler(void)
   */
 void BusFault_Handler(void)
 {
-  /* Go to infinite loop when Bus Fault exception occurs */
-  while (1)
-  {
-  }
+  AppRtos_Assert("BusFault", 0);
 }
 
 /**
@@ -94,10 +86,7 @@ void BusFault_Handler(void)
   */
 void UsageFault_Handler(void)
 {
-  /* Go to infinite loop when Usage Fault exception occurs */
-  while (1)
-  {
-  }
+  AppRtos_Assert("UsageFault", 0);
 }
 
 /**
@@ -105,9 +94,7 @@ void UsageFault_Handler(void)
   * @param  None
   * @retval None
   */
-void SVC_Handler(void)
-{
-}
+/* SVC_Handler is provided by the FreeRTOS Cortex-M3 port. */
 
 /**
   * @brief  This function handles Debug Monitor exception.
@@ -123,21 +110,14 @@ void DebugMon_Handler(void)
   * @param  None
   * @retval None
   */
-void PendSV_Handler(void)
-{
-}
+/* PendSV_Handler is provided by the FreeRTOS Cortex-M3 port. */
 
 /**
   * @brief  This function handles SysTick Handler.
   * @param  None
   * @retval None
   */
-/* SysTick_Handler 由 bsp.c 提供（系统节拍 + 按键扫描） */
-/*
-void SysTick_Handler(void)
-{
-}
-*/
+/* SysTick_Handler is provided by the FreeRTOS Cortex-M3 port. */
 
 /******************************************************************************/
 /*                 STM32F10x Peripherals Interrupt Handlers                   */

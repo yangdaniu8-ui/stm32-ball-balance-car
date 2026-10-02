@@ -2,7 +2,6 @@
 
 /* DWT 周期计数器（72MHz，精确计时） */
 extern u32 DWT_GetTick(void);
-extern volatile u32 g_SysTick;
 
 /**************************************************************************
  * 软启动数据结构
@@ -174,6 +173,7 @@ void Moto_RampUpdate(void)
 
     /* ---- M1 ---- */
     elapsed_us = (now - ramp_m1.last_dwt) / 72;
+    if (elapsed_us > 20000u) elapsed_us = 20000u;
     if (elapsed_us > 0)
     {
         ramp_m1.last_dwt = now;
@@ -194,6 +194,7 @@ void Moto_RampUpdate(void)
 
     /* ---- M2 ---- */
     elapsed_us = (now - ramp_m2.last_dwt) / 72;
+    if (elapsed_us > 20000u) elapsed_us = 20000u;
     if (elapsed_us > 0)
     {
         ramp_m2.last_dwt = now;
@@ -234,10 +235,13 @@ void SpinRight(int Speed)  { Moto_SetM1Speed(-Speed); Moto_SetM2Speed(Speed);  }
  **************************************************************************/
 void Stop(void)
 {
+    u32 now = DWT_GetTick();
     Moto_ApplyM1HW(0);
     Moto_ApplyM2HW(0);
     ramp_m1.current = 0; ramp_m1.target = 0;
     ramp_m2.current = 0; ramp_m2.target = 0;
+    ramp_m1.last_dwt = now;
+    ramp_m2.last_dwt = now;
 }
 
 /**************************************************************************
@@ -245,10 +249,13 @@ void Stop(void)
  **************************************************************************/
 void Moto_Brake(void)
 {
+    u32 now = DWT_GetTick();
     M1_IA1_HIGH(); M1_IA2_HIGH();
     M2_IB1_HIGH(); M2_IB2_HIGH();
     TIM_SetCompare3(TIM4, 0);
     TIM_SetCompare4(TIM4, 0);
     ramp_m1.current = 0; ramp_m1.target = 0;
     ramp_m2.current = 0; ramp_m2.target = 0;
+    ramp_m1.last_dwt = now;
+    ramp_m2.last_dwt = now;
 }

@@ -260,6 +260,28 @@ static void OLED_I2C_Reset(void)
     { volatile u32 dly = 720; while (dly--); }   /* ~10µs */
     RCC_APB1PeriphResetCmd(RCC_APB1Periph_I2C2, DISABLE);
 
+    /* Clock out a stuck slave, then generate a STOP before restoring AF mode. */
+    {
+        GPIO_InitTypeDef gpio;
+        u8 pulse;
+        gpio.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
+        gpio.GPIO_Speed = GPIO_Speed_50MHz;
+        gpio.GPIO_Mode = GPIO_Mode_Out_OD;
+        GPIO_Init(GPIOB, &gpio);
+        GPIO_SetBits(GPIOB, GPIO_Pin_10 | GPIO_Pin_11);
+        for (pulse = 0; pulse < 9; ++pulse) {
+            GPIO_ResetBits(GPIOB, GPIO_Pin_10);
+            delay_us(5);
+            GPIO_SetBits(GPIOB, GPIO_Pin_10);
+            delay_us(5);
+        }
+        GPIO_ResetBits(GPIOB, GPIO_Pin_11);
+        delay_us(5);
+        GPIO_SetBits(GPIOB, GPIO_Pin_10);
+        delay_us(5);
+        GPIO_SetBits(GPIOB, GPIO_Pin_11);
+    }
+
     /* 重新初始化 I2C2 */
     {
         GPIO_InitTypeDef GPIO_InitStructure;
@@ -357,43 +379,33 @@ static void OLED_WriteCmd(u8 cmd)
 /**************************************************************************
  * 函数功能：向 SSD1306 发送数据（带超时保护）
  **************************************************************************/
-static void OLED_WriteData(u8 data)
+static u8 OLED_WriteBuffer(const u8 *data, u16 length)
 {
     u32 timeout;
-
-    if (!OLED_Ready) return;
-
+    u16 i;
+    if (!OLED_Ready || OLED_Recover) return 1;
     timeout = I2C_TIMEOUT;
     while (I2C_GetFlagStatus(I2C2, I2C_FLAG_BUSY))
-    {
-        if (--timeout == 0) { OLED_Recover = 1; return; }
-    }
-
+        if (--timeout == 0) goto failed;
     I2C_GenerateSTART(I2C2, ENABLE);
     timeout = I2C_TIMEOUT;
     while (!I2C_CheckEvent(I2C2, I2C_EVENT_MASTER_MODE_SELECT))
-    {
-        if (--timeout == 0) { OLED_Recover = 1; return; }
-    }
-
+        if (--timeout == 0) goto failed;
     I2C_Send7bitAddress(I2C2, OLED_I2C_ADDR, I2C_Direction_Transmitter);
     timeout = I2C_TIMEOUT;
-    while (!I2C_CheckEvent(I2C2, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED))
-    {
-        if (I2C_GetFlagStatus(I2C2, I2C_FLAG_AF))
-        {
-            I2C_ClearFlag(I2C2, I2C_FLAG_AF);
-            I2C_GenerateSTOP(I2C2, ENABLE);
-            OLED_Recover = 1;
-            return;
-        }
-        if (--timeout == 0) { OLED_Recover = 1; return; }
+    while (!I2C_CheckEvent(I2C2, I2C_EVENT_MASTER_TRANSMITTER_MODE_SELECTED)) {
+        if (I2C_GetFlagStatus(I2C2, I2C_FLAG_AF) || --timeout == 0) goto failed;
     }
-
-    if (I2C2_WriteByte(0x40)) { OLED_Recover = 1; return; }
-    if (I2C2_WriteByte(data))  { OLED_Recover = 1; return; }
-
+    if (I2C2_WriteByte(0x40)) goto failed;
+    for (i = 0; i < length; ++i)
+        if (I2C2_WriteByte(data[i])) goto failed;
     I2C_GenerateSTOP(I2C2, ENABLE);
+    return 0;
+failed:
+    I2C_ClearFlag(I2C2, I2C_FLAG_AF);
+    I2C_GenerateSTOP(I2C2, ENABLE);
+    OLED_Recover = 1;
+    return 1;
 }
 
 /**************************************************************************
@@ -478,7 +490,6 @@ void OLED_Clear(void)
  **************************************************************************/
 void OLED_Refresh(void)
 {
-    u16 i;
 
     /* 通信出错后自动恢复 I2C 总线 */
     if (OLED_Recover)
@@ -519,10 +530,7 @@ void OLED_Refresh(void)
     OLED_WriteCmd(0x07);
 
     /* 批量写入数据 */
-    for (i = 0; i < sizeof(OLED_FrameBuf); i++)
-    {
-        OLED_WriteData(OLED_FrameBuf[i]);
-    }
+    (void)OLED_WriteBuffer(OLED_FrameBuf, sizeof(OLED_FrameBuf));
 }
 
 /**************************************************************************

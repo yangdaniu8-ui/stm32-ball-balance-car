@@ -14,12 +14,10 @@
 extern int  g_Speed;
 extern int  g_Mode;
 extern u8   g_Running;
-extern volatile u32 g_SysTick;
 
 /* ---------- 函数声明 ---------- */
 void bsp_init(void);
 void System_Init(void);
-void SysTick_Handler(void);
 u32  DWT_GetTick(void);
 
 #endif

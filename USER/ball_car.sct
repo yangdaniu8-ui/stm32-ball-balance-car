@@ -1,0 +1,11 @@
+; Explicit STM32F103C8T6 limits: 64 KiB Flash, 20 KiB SRAM.
+LR_IROM1 0x08000000 0x00010000 {
+  ER_IROM1 0x08000000 0x00010000 {
+    startup_stm32f10x_md.o (RESET, +First)
+    *(InRoot$$Sections)
+    .ANY (+RO)
+  }
+  RW_IRAM1 0x20000000 0x00005000 {
+    .ANY (+RW +ZI)
+  }
+}

@@ -29,6 +29,7 @@ OBJ/
 
 # 链接 scatter 文件，Keil 自动生成；若手工维护请删本行
 *.sct
+!USER/ball_car.sct
 
 # ---- 烧录 / 仿真结果文件（可由源码重新生成）----
 *.axf
@@ -46,3 +47,6 @@ OBJ/
 # ============================================================
 Thumbs.db
 Desktop.ini
+
+# Host-side regression-test binaries
+tests/build/
